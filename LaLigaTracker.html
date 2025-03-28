@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>La Liga Tracker - Frontend</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f7f7f7;
+      color: #333;
+    }
+    header, section {
+      max-width: 800px;
+      margin: auto;
+      margin-bottom: 30px;
+      padding: 15px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .match {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: #f9f9f9;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input[type="text"], input[type="number"], input[type="date"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .loading {
+      text-align: center;
+      font-style: italic;
+      color: #666;
+      padding: 20px;
+    }
+    .error {
+      color: #d32f2f;
+      font-weight: bold;
+      padding: 10px;
+      background-color: #fde0e0;
+      border-radius: 4px;
+    }
+    .success {
+      color: #388e3c;
+      font-weight: bold;
+      padding: 10px;
+      background-color: #e8f5e9;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>La Liga Tracker - Frontend</h1>
+  </header>
+
+  <!-- Sección para listar partidos -->
+  <section>
+    <h2>Listado de Partidos</h2>
+    <button id="loadMatchesBtn">Cargar Partidos</button>
+    <div id="matches" class="loading">Presiona "Cargar Partidos" para ver los partidos</div>
+  </section>
+
+  <!-- Sección para crear un nuevo partido -->
+  <section>
+    <h2>Crear Nuevo Partido</h2>
+    <form id="createMatchForm">
+      <label>Equipo Local:
+        <input type="text" id="homeTeam" required>
+      </label>
+      <label>Equipo Visitante:
+        <input type="text" id="awayTeam" required>
+      </label>
+      <label>Fecha:
+        <input type="date" id="matchDate" required>
+      </label>
+      <button type="submit">Crear Partido</button>
+    </form>
+    <div id="createMatchResult"></div>
+  </section>
+
+  <!-- Sección para buscar un partido por ID -->
+  <section>
+    <h2>Buscar Partido por ID</h2>
+    <form id="searchMatchForm">
+      <label>ID del Partido:
+        <input type="text" id="searchMatchId" required>
+      </label>
+      <button type="submit">Buscar Partido</button>
+    </form>
+    <div id="matchDetails"></div>
+  </section>
+
+  <!-- Sección para actualizar un partido -->
+  <section>
+    <h2>Actualizar Partido</h2>
+    <form id="updateMatchForm">
+      <label>ID del Partido a Actualizar:
+        <input type="text" id="updateMatchId" required>
+      </label>
+      <label>Nuevo Equipo Local:
+        <input type="text" id="updateHomeTeam" required>
+      </label>
+      <label>Nuevo Equipo Visitante:
+        <input type="text" id="updateAwayTeam" required>
+      </label>
+      <label>Nueva Fecha:
+        <input type="date" id="updateMatchDate" required>
+      </label>
+      <button type="submit">Actualizar Partido</button>
+    </form>
+    <div id="updateMatchResult"></div>
+  </section>
+
+  <!-- Sección para eliminar un partido -->
+  <section>
+    <h2>Eliminar Partido</h2>
+    <form id="deleteMatchForm">
+      <label>ID del Partido a Eliminar:
+        <input type="text" id="deleteMatchId" required>
+      </label>
+      <button type="submit">Eliminar Partido</button>
+    </form>
+    <div id="deleteMatchResult"></div>
+  </section>
+
+  <!-- Sección para endpoints opcionales con PATCH -->
+  <section>
+    <h2>Operaciones Adicionales (PATCH)</h2>
+    <form id="patchOperationsForm">
+      <label>ID del Partido:
+        <input type="text" id="patchMatchId" required>
+      </label>
+      <div style="margin-top: 10px;">
+        <button type="button" id="registerGoalBtn">Registrar Gol</button>
+        <button type="button" id="registerYellowCardBtn">Registrar Tarjeta Amarilla</button>
+        <button type="button" id="registerRedCardBtn">Registrar Tarjeta Roja</button>
+        <button type="button" id="setExtraTimeBtn">Establecer Tiempo Extra</button>
+      </div>
+    </form>
+    <div id="patchOperationResult"></div>
+  </section>
+
+  <script>
+    // Esperar a que el DOM esté completamente cargado
+    document.addEventListener('DOMContentLoaded', function() {
+      // URL base de la API
+      const apiBaseUrl = 'http://localhost:8080';
+
+      // Función para realizar peticiones HTTP con CORS
+      async function makeRequest(url, method, body = null) {
+        const options = {
+          method: method,
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
+        };
+        
+        if (body) {
+          options.body = JSON.stringify(body);
+        }
+        
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || errorData.error || 'Error en la solicitud');
+        }
+        
+        return response.json();
+      }
+
+      // Función para mostrar mensajes
+      function showMessage(message, type = 'error', elementId = null) {
+        const messageElement = document.createElement('div');
+        messageElement.className = type;
+        messageElement.textContent = message;
+        
+        if (elementId) {
+          const container = document.getElementById(elementId);
+          container.innerHTML = '';
+          container.appendChild(messageElement);
+        } else {
+          alert(message);
+        }
+        
+        // Eliminar el mensaje después de 5 segundos
+        if (elementId) {
+          setTimeout(() => {
+            messageElement.remove();
+          }, 5000);
+        }
+      }
+
+      // Función para obtener todos los partidos
+      async function fetchMatches() {
+        const matchesDiv = document.getElementById('matches');
+        matchesDiv.innerHTML = '<p class="loading">Cargando partidos...</p>';
+        
+        try {
+          const matches = await makeRequest(`${apiBaseUrl}/matches`, 'GET');
+          displayMatches(matches);
+        } catch (error) {
+          showMessage(error.message, 'error', 'matches');
+        }
+      }
+
+      // Función para mostrar los partidos en pantalla
+      function displayMatches(matches) {
+        const matchesDiv = document.getElementById('matches');
+        matchesDiv.innerHTML = '';
+        
+        if (matches.length === 0) {
+          matchesDiv.innerHTML = '<p>No se encontraron partidos.</p>';
+          return;
+        }
+        
+        matches.forEach(match => {
+          const matchDiv = document.createElement('div');
+          matchDiv.className = 'match';
+          matchDiv.innerHTML = `
+            <p><strong>ID:</strong> ${match.match_id}</p>
+            <p><strong>Equipo Local:</strong> ${match.home_team}</p>
+            <p><strong>Equipo Visitante:</strong> ${match.away_team}</p>
+            <p><strong>Fecha:</strong> ${match.date}</p>
+            <button onclick="deleteMatch('${match.match_id}')">Eliminar Partido</button>
+            <button onclick="prepareUpdate('${match.match_id}', '${match.home_team}', '${match.away_team}', '${match.date}')">Actualizar Partido</button>
+          `;
+          matchesDiv.appendChild(matchDiv);
+        });
+      }
+
+      // Función para crear un nuevo partido
+      document.getElementById('createMatchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const matchId = Math.floor(Math.random() * 10000).toString();
+        const homeTeam = document.getElementById('homeTeam').value;
+        const awayTeam = document.getElementById('awayTeam').value;
+        const matchDate = document.getElementById('matchDate').value;
+        
+        try {
+          await makeRequest(`${apiBaseUrl}/matches`, 'POST', { 
+            match_id: matchId,
+            home_team: homeTeam, 
+            away_team: awayTeam, 
+            date: matchDate 
+          });
+          
+          document.getElementById('createMatchForm').reset();
+          fetchMatches();
+          showMessage('Partido creado exitosamente!', 'success', 'createMatchResult');
+        } catch (error) {
+          showMessage(error.message, 'error', 'createMatchResult');
+        }
+      });
+
+      // Función para buscar un partido por ID
+      document.getElementById('searchMatchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const matchId = document.getElementById('searchMatchId').value;
+        
+        try {
+          const match = await makeRequest(`${apiBaseUrl}/matches/${matchId}`, 'GET');
+          displayMatchDetails(match);
+        } catch (error) {
+          showMessage(error.message, 'error', 'matchDetails');
+        }
+      });
+
+      // Función para mostrar los detalles de un partido
+      function displayMatchDetails(match) {
+        const detailsDiv = document.getElementById('matchDetails');
+        detailsDiv.innerHTML = `
+          <div class="match">
+            <h3>Detalles del Partido</h3>
+            <p><strong>ID:</strong> ${match.match_id}</p>
+            <p><strong>Equipo Local:</strong> ${match.home_team}</p>
+            <p><strong>Equipo Visitante:</strong> ${match.away_team}</p>
+            <p><strong>Fecha:</strong> ${match.date}</p>
+          </div>
+        `;
+      }
+
+      // Función para preparar la actualización de un partido
+      window.prepareUpdate = function(id, homeTeam, awayTeam, date) {
+        document.getElementById('updateMatchId').value = id;
+        document.getElementById('updateHomeTeam').value = homeTeam;
+        document.getElementById('updateAwayTeam').value = awayTeam;
+        document.getElementById('updateMatchDate').value = date;
+      }
+
+      // Función para actualizar un partido
+      document.getElementById('updateMatchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('updateMatchId').value;
+        const homeTeam = document.getElementById('updateHomeTeam').value;
+        const awayTeam = document.getElementById('updateAwayTeam').value;
+        const matchDate = document.getElementById('updateMatchDate').value;
+        
+        try {
+          await makeRequest(`${apiBaseUrl}/matches/${id}`, 'PUT', { 
+            home_team: homeTeam, 
+            away_team: awayTeam, 
+            date: matchDate 
+          });
+          
+          document.getElementById('updateMatchForm').reset();
+          fetchMatches();
+          showMessage('Partido actualizado exitosamente!', 'success', 'updateMatchResult');
+        } catch (error) {
+          showMessage(error.message, 'error', 'updateMatchResult');
+        }
+      });
+
+      // Función para eliminar un partido
+      document.getElementById('deleteMatchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('deleteMatchId').value;
+        deleteMatch(id);
+      });
+
+      window.deleteMatch = async function(id) {
+        if (!confirm('¿Está seguro de eliminar este partido?')) return;
+        
+        try {
+          await makeRequest(`${apiBaseUrl}/matches/${id}`, 'DELETE');
+          fetchMatches();
+          showMessage('Partido eliminado exitosamente!', 'success', 'deleteMatchResult');
+        } catch (error) {
+          showMessage(error.message, 'error', 'deleteMatchResult');
+        }
+      }
+
+      // Función para mostrar que los endpoints PATCH no están implementados
+      function showPatchNotImplemented() {
+        showMessage("Esta funcionalidad no está implementada en el backend", 'error', 'patchOperationResult');
+      }
+
+      // Asignar eventos a los botones PATCH
+      document.getElementById('registerGoalBtn').addEventListener('click', showPatchNotImplemented);
+      document.getElementById('registerYellowCardBtn').addEventListener('click', showPatchNotImplemented);
+      document.getElementById('registerRedCardBtn').addEventListener('click', showPatchNotImplemented);
+      document.getElementById('setExtraTimeBtn').addEventListener('click', showPatchNotImplemented);
+
+      // Asignar evento al botón de cargar partidos
+      document.getElementById('loadMatchesBtn').addEventListener('click', fetchMatches);
+    });
+  </script>
+</body>
+</html>
