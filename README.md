@@ -51,6 +51,7 @@ PATCH	/matches/:id/extratime	Actualiza minutos adicionales
 Modelo de datos 📊
 json
 Copy
+
 {
   "match_id": "1",
   "home_team": "Real Madrid",
@@ -62,6 +63,7 @@ Copy
   "red_cards": 1,
   "extra_minutes": 5
 }
+
 Ejemplos de uso 💻
 Obtener todos los partidos
 bash
@@ -87,5 +89,8 @@ curl -X PATCH http://localhost:8080/matches/1/goals \
     "home_goals": 3,
     "away_goals": 2
   }'
+
+Link a la coleccion de postman: https://javier-4375792.postman.co/workspace/Javier's-Workspace~e31ea27b-4d20-4eff-86eb-379f74ab86f3/request/43541136-fe214616-4ef5-4266-b156-87d5def0b012?action=share&creator=43541136&ctx=documentation
+
 Licencia 📄
 Este proyecto está bajo la licencia MIT.
