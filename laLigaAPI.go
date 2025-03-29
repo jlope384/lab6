@@ -208,6 +208,11 @@ func ping(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "pong"})
 }
 
+// Get all matches
+// GET /matches
+// Response: [{ "match_id": "1", "home_team": "Real Madrid", "away_team": "Barcelona", "date": "2023-10-28", "home_goals": 2, "away_goals": 1, "yellow_cards": 3, "red_cards": 1, "extra_minutes": 5 }, ...]
+// Error handling: { "error": "Could not retrieve matches" }
+// Error handling: { "error": "Could not read matches" }
 func getMatches(c *gin.Context) {
 	rows, err := db.Query("SELECT match_id, home_team, away_team, date, home_goals, away_goals, yellow_cards, red_cards, extra_minutes FROM matches")
 	if err != nil {
@@ -239,6 +244,11 @@ func getMatches(c *gin.Context) {
 	c.JSON(http.StatusOK, matches)
 }
 
+// Get a match by ID
+// GET /matches/:id
+// Response: { "match_id": "1", "home_team": "Real Madrid", "away_team": "Barcelona", "date": "2023-10-28", "home_goals": 2, "away_goals": 1, "yellow_cards": 3, "red_cards": 1, "extra_minutes": 5 }
+// Error handling: { "error": "Could not retrieve match" }
+// Error handling: { "message": "Match not found" }
 func getMatch(c *gin.Context) {
 	matchID := c.Param("id")
 
@@ -270,6 +280,11 @@ func getMatch(c *gin.Context) {
 	c.JSON(http.StatusOK, match)
 }
 
+// Create a new match
+// POST /matches
+// Request body: { "match_id": "6", "home_team": "Celta Vigo", "away_team": "Granada", "date": "2023-11-02", "home_goals": 1, "away_goals": 1, "yellow_cards": 2, "red_cards": 0, "extra_minutes": 0 }
+// Response: { "match_id": "6", "home_team": "Celta Vigo", "away_team": "Granada", "date": "2023-11-02", "home_goals": 1, "away_goals": 1, "yellow_cards": 2, "red_cards": 0, "extra_minutes": 0 }
+// Error handling: { "error": "Could not create match" }
 func createMatch(c *gin.Context) {
 	var newMatch Match
 	if err := c.ShouldBindJSON(&newMatch); err != nil {
@@ -298,6 +313,12 @@ func createMatch(c *gin.Context) {
 	c.JSON(http.StatusCreated, newMatch)
 }
 
+// Update a match
+// PUT /matches/:id
+// Request body: { "home_team": "Real Madrid", "away_team": "Barcelona", "date": "2023-10-28", "home_goals": 2, "away_goals": 1, "yellow_cards": 3, "red_cards": 1, "extra_minutes": 5 }
+// Response: { "match_id": "1", "home_team": "Real Madrid", "away_team": "Barcelona", "date": "2023-10-28", "home_goals": 2, "away_goals": 1, "yellow_cards": 3, "red_cards": 1, "extra_minutes": 5 }
+// Error handling: { "error": "Could not update match" }
+// Error handling: { "message": "Match not found" }
 func updateMatch(c *gin.Context) {
 	matchID := c.Param("id")
 
@@ -334,6 +355,12 @@ func updateMatch(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedMatch)
 }
 
+// Delete a match
+// DELETE /matches/:id
+// Response: { "message": "Match deleted" }
+// Error handling: { "error": "Could not delete match" }
+// Error handling: { "message": "Match not found" }
+// Error handling: { "error": "Invalid request" }
 func deleteMatch(c *gin.Context) {
 	matchID := c.Param("id")
 
@@ -352,6 +379,13 @@ func deleteMatch(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Match deleted"})
 }
 
+// Update goals for a match
+// PATCH /matches/:id/goals
+// Request body: { "home_goals": 2, "away_goals": 1 }
+// Response: { "message": "Goals updated" }
+// Error handling: { "error": "Could not update goals" }
+// Error handling: { "message": "Match not found" }
+// Error handling: { "error": "Invalid request" }
 func updateGoals(c *gin.Context) {
 	matchID := c.Param("id")
 
@@ -384,6 +418,13 @@ func updateGoals(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Goals updated"})
 }
 
+// Update yellow cards for a match
+// PATCH /matches/:id/yellowcards
+// Request body: { "yellow_cards": 2 }
+// Response: { "message": "Yellow cards updated" }
+// Error handling: { "error": "Could not update yellow cards" }
+// Error handling: { "message": "Match not found" }
+// Error handling: { "error": "Invalid request" }
 func updateYellowCards(c *gin.Context) {
 	matchID := c.Param("id")
 
@@ -415,6 +456,13 @@ func updateYellowCards(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Yellow cards updated"})
 }
 
+// Update red cards for a match
+// PATCH /matches/:id/redcards
+// Request body: { "red_cards": 1 }
+// Response: { "message": "Red cards updated" }
+// Error handling: { "error": "Could not update red cards" }
+// Error handling: { "message": "Match not found" }
+// Error handling: { "error": "Invalid request" }
 func updateRedCards(c *gin.Context) {
 	matchID := c.Param("id")
 
@@ -446,6 +494,14 @@ func updateRedCards(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Red cards updated"})
 }
 
+// Update extra time for a match
+// PATCH /matches/:id/extratime
+// Request body: { "extra_minutes": 5 }
+// Response: { "message": "Extra time updated" }
+// Error handling: { "error": "Could not update extra time" }
+// Error handling: { "message": "Match not found" }
+// Error handling: { "error": "Invalid request" }
+// Error handling: { "error": "Could not update extra time" }
 func updateExtraTime(c *gin.Context) {
 	matchID := c.Param("id")
 
